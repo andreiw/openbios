@@ -28,7 +28,13 @@ variable state-valid
 0 state-valid !
 
 variable want-bootcode
+variable bootcode-base
+variable bootcode-size
+variable bootcode-entry
 0 want-bootcode !
+0 bootcode-base !
+0 bootcode-size !
+0 bootcode-entry !
 
 variable file-size
 

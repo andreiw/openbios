@@ -1,6 +1,6 @@
 /*
  *   Creation Date: <2003/12/04 17:07:05 samuel>
- *   Time-stamp: <2004/01/07 19:36:09 samuel>
+ *   Time-stamp: <2014-03-05 03:42:07 andreiw>
  *
  *	<mac-parts.c>
  *
@@ -237,6 +237,19 @@ macparts_open( macparts_info_t *di )
 	    size = (long long)__be32_to_cpu(par.pmPartBlkCnt) * bs;	
 	    
 	    if (want_bootcode) {
+		ucell loadaddr = 0;
+		ucell loadsize = 0;
+		ucell loadentry = 0;
+
+		loadaddr = __be32_to_cpu(par.pmBootLoad);
+		loadsize = __be32_to_cpu(par.pmBootSize);
+		loadentry = __be32_to_cpu(par.pmBootEntry);
+		PUSH(loadaddr);
+		feval("bootcode-base !");
+		PUSH(loadsize);
+		feval("bootcode-size !");
+		PUSH(loadentry);
+		feval("bootcode-entry !");
 		offs += (long long)__be32_to_cpu(par.pmLgBootStart) * bs;
 		size = (long long)__be32_to_cpu(par.pmBootSize);
 	    }
@@ -248,6 +261,10 @@ macparts_open( macparts_info_t *di )
 
 	    di->size_hi = size >> BITS;
 	    di->size_lo = size & (ucell) -1;
+
+	    if (want_bootcode) {
+	      goto out;
+	    }
 
 	    /* We have a valid partition - so probe for a filesystem at the current offset */
 	    DPRINTF("mac-parts: about to probe for fs\n");
@@ -277,7 +294,7 @@ macparts_open( macparts_info_t *di )
 		
 		    /* If we have been asked to open a particular file, interpose the filesystem package with 
 		    the passed filename as an argument */
-		    if (!want_bootcode && strlen(argstr)) {
+		    if ( strlen(argstr)) {
 			    push_str( argstr );
 			    PUSH_ph( ph );
 			    fword("interpose");
@@ -286,6 +303,10 @@ macparts_open( macparts_info_t *di )
 		    goto out;
 	    } else {
 		    DPRINTF("mac-parts: no filesystem found on partition %d; bypassing misc-files interpose\n", parnum);
+
+		    /* Fail out instead of having macparts_load get called uselessly, allowing trying the next
+		       boot device */
+		    ret = 0;
 	    }
 	}
 	    
